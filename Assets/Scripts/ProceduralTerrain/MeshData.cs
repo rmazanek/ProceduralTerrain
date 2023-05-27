@@ -14,9 +14,11 @@ namespace ProceduralTerrain
         private int[] borderTriangles;
         private int triangleIndex;
         private int borderTriangleIndex;
+        private bool useFlatShading;
 
-        public MeshData(int verticesPerLine)
+        public MeshData(int verticesPerLine, bool useFlatShading)
         {
+            this.useFlatShading = useFlatShading;
             vertices = new Vector3[verticesPerLine * verticesPerLine];
             uvs = new Vector2[verticesPerLine * verticesPerLine];
             triangles = new int[(verticesPerLine - 1) * (verticesPerLine -1) * 6];
@@ -62,7 +64,7 @@ namespace ProceduralTerrain
         //    triangles[index + 2] = c;
         //    index += 3;
         //}
-        Vector3[] CalculateNormals()
+        private Vector3[] CalculateNormals()
         {
             Vector3[] vertexNormals = new Vector3[vertices.Length];
             int triangleCount = triangles.Length / 3;
@@ -110,7 +112,7 @@ namespace ProceduralTerrain
 
             return vertexNormals;
         }
-        Vector3 SurfaceNormalFromIndices(int indexA, int indexB, int indexC)
+        private Vector3 SurfaceNormalFromIndices(int indexA, int indexB, int indexC)
         {
             Vector3 pointA = (indexA < 0) ? borderVertices[-indexA-1] : vertices[indexA];
             Vector3 pointB = (indexB < 0) ? borderVertices[-indexB-1] : vertices[indexB];
@@ -121,9 +123,35 @@ namespace ProceduralTerrain
 
             return Vector3.Cross(sideAB, sideAC).normalized;
         }
-        public void BakeNormals()
+        public void FinalizeVerticesAndUVs()
+        {
+            if (useFlatShading)
+            {
+                FlatShading();
+            }
+            else
+            {
+                BakeNormals();
+            }
+        }
+        private void BakeNormals()
         {
             bakedNormals = CalculateNormals();
+        }
+        private void FlatShading()
+        {
+            Vector3[] flatShadedVertices = new Vector3[triangles.Length];
+            Vector2[] flatShadedUVs = new Vector2[triangles.Length];
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                flatShadedVertices[i] = vertices[triangles[i]];
+                flatShadedUVs[i] = uvs[triangles[i]];
+
+                triangles[i] = i;
+            }
+
+            vertices = flatShadedVertices;
+            uvs = flatShadedUVs;
         }
         public Mesh CreateMesh()
         {
@@ -131,7 +159,14 @@ namespace ProceduralTerrain
             mesh.vertices = vertices;
             mesh.triangles = triangles;
             mesh.uv = uvs;
-            mesh.normals = bakedNormals;
+            if (useFlatShading)
+            {
+                mesh.RecalculateNormals();
+            }
+            else
+            {
+                mesh.normals = bakedNormals;
+            }
             return mesh;
         }
     }

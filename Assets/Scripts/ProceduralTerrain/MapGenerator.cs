@@ -13,7 +13,7 @@ namespace ProceduralTerrain
         [SerializeField] private DrawMode drawMode;
         [SerializeField] private Noise.NormalizeMode normalizeMode;
         [SerializeField, Range(0f, 3f)] private float normalizationFactor = 1f;
-        public const int MapChunkSize = 239;
+        [SerializeField] private bool useFlatShading;
         [SerializeField, Range(0, 6)] private int editorPreviewLevelOfDetail;
         [SerializeField] private NoiseAlgorithm noiseAlgorithm;
         [SerializeField] private int seed;
@@ -30,6 +30,7 @@ namespace ProceduralTerrain
         [SerializeField] private float meshHeightMultiplier;
         [SerializeField] private AnimationCurve meshHeightCurve;
         [SerializeField] TerrainType[] regions;
+        private static MapGenerator instance;
         private float[,] falloffMap;
         public bool AutoUpdate = true;
         Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
@@ -37,6 +38,26 @@ namespace ProceduralTerrain
         private void Awake() 
         {
             falloffMap = FalloffGenerator.GenerateFalloffMap(MapChunkSize);
+        }
+        public static int MapChunkSize
+        {
+            get {
+                if (instance == null)
+                {
+                    instance = FindObjectOfType<MapGenerator>();
+                }
+
+                if (instance.useFlatShading) 
+                {
+                    // Flat shading requires more vertices (triangles can't have shared vertices when calculating normals), so the chunk size needs to be restricted
+                    return 95;
+                }
+                else
+                {
+                    // Normal chunk size (241-1 for border tiles) when not using flatshading
+                    return 239;
+                }
+            }
         }
         public void DrawMapInEditor()
         {
@@ -52,7 +73,7 @@ namespace ProceduralTerrain
             }
             else if (drawMode == DrawMode.Mesh)
             {
-                display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.HeightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLevelOfDetail), TextureGenerator.TextureFromColorMap(mapData.ColorMap, MapChunkSize, MapChunkSize));
+                display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.HeightMap, meshHeightMultiplier, meshHeightCurve, editorPreviewLevelOfDetail, useFlatShading), TextureGenerator.TextureFromColorMap(mapData.ColorMap, MapChunkSize, MapChunkSize));
             }
             else if (drawMode == DrawMode.FalloffMap)
             {
@@ -87,7 +108,7 @@ namespace ProceduralTerrain
         }
         private void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback)
         {
-            MeshData meshData = MeshGenerator.GenerateTerrainMesh(mapData.HeightMap, meshHeightMultiplier, meshHeightCurve, lod);
+            MeshData meshData = MeshGenerator.GenerateTerrainMesh(mapData.HeightMap, meshHeightMultiplier, meshHeightCurve, lod, useFlatShading);
             lock(meshDataThreadInfoQueue)
             {
                 meshDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData> (callback, meshData));
