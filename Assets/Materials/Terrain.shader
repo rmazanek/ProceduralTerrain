@@ -2,7 +2,8 @@ Shader "Custom/Terrain"
 {
     Properties
     {
-
+        testTexture("Texture", 2D) = "white"{}
+        testScale("Scale", Float) = 1
     }
     SubShader
     {
@@ -17,18 +18,28 @@ Shader "Custom/Terrain"
         #pragma target 3.0
 
         // Very important that when referencing these properties using "SetFloat/ SetInt" in C#, you do not misspell or change the case of the name.
-        const static int maxColorCount = 8;
+        const static int maxTerrainLayerCount = 8;
+        const static float epsilon = 1E-4;
 
-        int baseColorCount;
-        float3 baseColors[maxColorCount];
-        float baseStartHeights[maxColorCount];
+        int terrainLayerCount;
+        float3 baseColors[maxTerrainLayerCount];
+        float baseStartHeights[maxTerrainLayerCount];
+        float baseBlends[maxTerrainLayerCount];
+        float baseColorStrength[maxTerrainLayerCount];
+        float baseTextureScales[maxTerrainLayerCount];
 
         float minHeight;
         float maxHeight;
 
+        sampler2D testTexture;
+        float testScale;
+
+        UNITY_DECLARE_TEX2DARRAY(baseTextures);
+
         struct Input
         {
             float3 worldPos;
+            float3 worldNormal;
         };
 
         float inverseLerp(float a, float b, float value)
@@ -43,14 +54,32 @@ Shader "Custom/Terrain"
             // put more per-instance properties here
         UNITY_INSTANCING_BUFFER_END(Props)
 
+        float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int textureIndex)
+        {
+            float3 scaledWorldPos = worldPos/scale;
+
+            float3 xProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3 (scaledWorldPos.y, scaledWorldPos.z, textureIndex)) * blendAxes.x;
+            float3 yProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3 (scaledWorldPos.x, scaledWorldPos.z, textureIndex)) * blendAxes.y;
+            float3 zProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3 (scaledWorldPos.x, scaledWorldPos.y, textureIndex)) * blendAxes.z;
+
+            return xProjection + yProjection + zProjection;
+        }
+
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
             float heightPercent = inverseLerp(minHeight, maxHeight, IN.worldPos.y);
-            for (int i=0; i < baseColorCount; i++)
+            float3 blendAxes = abs(IN.worldNormal);
+            blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
+
+            for (int i=0; i < terrainLayerCount; i++)
             {
-                float drawStrength = saturate(sign(heightPercent - baseStartHeights[i]));
-                o.Albedo = o.Albedo * (1-drawStrength) + baseColors[i] * drawStrength;
+                float drawStrength = inverseLerp(-baseBlends[i]/2 - epsilon, baseBlends[i]/2, heightPercent - baseStartHeights[i]);
+                float3 baseColor = baseColors[i] * baseColorStrength[i];
+                float3 textureColor = triplanar(IN.worldPos, baseTextureScales[i], blendAxes, i) * (1 - baseColorStrength[i]);
+
+                o.Albedo = o.Albedo * (1-drawStrength) + (baseColor + textureColor) * drawStrength;
             }
+
         }
         ENDCG
     }
