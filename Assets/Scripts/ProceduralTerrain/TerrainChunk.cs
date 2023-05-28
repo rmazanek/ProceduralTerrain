@@ -5,22 +5,26 @@ namespace ProceduralTerrain
 {
     public class TerrainChunk
     {
-        Vector2 position;
-        GameObject meshObject;
-        Bounds bounds;
-        MeshFilter meshFilter;
-        MeshRenderer meshRenderer;
-        MeshCollider meshCollider;
-        MapGenerator mapGenerator;
-        LODInfo[] detailLevels;
-        LODMesh[] lodMeshes;
-        LODMesh collisionLODMesh;
-        MapData mapData;
-        bool mapDataReceived;
-        int previousLODIndex = -1;
-        public TerrainChunk(MapGenerator mapGen, Vector2 coord, int size, LODInfo[] detailLevels, Transform parent, Material mat)
+        public Vector2 coord;
+        private Vector2 position;
+        private GameObject meshObject;
+        private Bounds bounds;
+        private MeshFilter meshFilter;
+        private MeshRenderer meshRenderer;
+        private MeshCollider meshCollider;
+        private MapGenerator mapGenerator;
+        private LODInfo[] detailLevels;
+        private LODMesh[] lodMeshes;
+        private int colliderLODIndex;
+        private MapData mapData;
+        private bool mapDataReceived;
+        private int previousLODIndex = -1;
+        private bool hasSetCollider;
+        public TerrainChunk(MapGenerator mapGen, Vector2 coord, int size, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Material mat)
         {
+            this.coord = coord;
             this.detailLevels = detailLevels;
+            this.colliderLODIndex = colliderLODIndex;
 
             mapGenerator = mapGen;
             position = coord * size;
@@ -41,10 +45,11 @@ namespace ProceduralTerrain
             lodMeshes = new LODMesh[detailLevels.Length];
             for (int i = 0; i < detailLevels.Length; i++)
             {
-                lodMeshes[i] = new LODMesh(mapGenerator, detailLevels[i].LOD, SetChunkInViewRangeToVisible);
-                if (detailLevels[i].UseForCollider)
+                lodMeshes[i] = new LODMesh(mapGenerator, detailLevels[i].LOD);
+                lodMeshes[i].UpdateCallback += UpdateTerrainChunk;
+                if (i == colliderLODIndex)
                 {
-                    collisionLODMesh = lodMeshes[i];
+                    lodMeshes[i].UpdateCallback += UpdateCollisionMesh;
                 }
             }
 
@@ -55,12 +60,13 @@ namespace ProceduralTerrain
             this.mapData = mapData;
             mapDataReceived = true;
 
-            SetChunkInViewRangeToVisible();
+            UpdateTerrainChunk();
         }
-        public void SetChunkInViewRangeToVisible()
+        public void UpdateTerrainChunk()
         {
             if (!mapDataReceived) return;
             float viewerDistFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(EndlessTerrain.ViewerPosition));
+            bool wasVisible = IsVisible();
             bool visible = viewerDistFromNearestEdge <= EndlessTerrain.MaxViewDst;
 
             if (!visible) return;
@@ -90,15 +96,8 @@ namespace ProceduralTerrain
                     lodMesh.RequestMesh(mapData);
                 }
             }
-
-            // Set collision mesh if player is close enough to render terrain at highest LOD
-            if (lodIndex == 0)
-            {
-                SetCollisionMesh(meshCollider, collisionLODMesh, mapData);
-            }
-            EndlessTerrain.TerrainChunksVisibleLastUpdate.Add(this);
-
-            SetVisible(visible);
+            
+            UpdateVisibility(wasVisible, visible);
         }
         public void SetVisible(bool visible)
         {
@@ -108,15 +107,56 @@ namespace ProceduralTerrain
         {
             return meshObject.activeSelf;
         }
-        private void SetCollisionMesh(MeshCollider meshCollider, LODMesh lodMesh, MapData mapData)
+        private void UpdateVisibility(bool visibleLastFrame, bool visibleThisFrame)
         {
-            if (lodMesh.HasMesh)
+            if (visibleLastFrame == visibleThisFrame) return;
+            if (visibleThisFrame)
             {
-                meshCollider.sharedMesh = lodMesh.Mesh;
+                EndlessTerrain.VisibleTerrainChunks.Add(this);
             }
-            else if (!lodMesh.HasRequestedMesh)
+            else
             {
-                lodMesh.RequestMesh(mapData);
+                EndlessTerrain.VisibleTerrainChunks.Remove(this);
+            }
+            SetVisible(visibleThisFrame);
+        }
+        public void UpdateCollisionMesh()
+        {
+            if (hasSetCollider) return;
+
+            float sqrDstFromViewerToEdge = bounds.SqrDistance(EndlessTerrain.ViewerPosition);
+
+            if (sqrDstFromViewerToEdge < detailLevels[colliderLODIndex].SqrVisibleDistanceThreshold)
+            {
+                if (!lodMeshes[colliderLODIndex].HasRequestedMesh)
+                {
+                    lodMeshes[colliderLODIndex].RequestMesh(mapData);
+                }
+            }
+            
+            if (sqrDstFromViewerToEdge < EndlessTerrain.ColliderGenerationDistanceThreshold * EndlessTerrain.ColliderGenerationDistanceThreshold)
+            {
+                if (lodMeshes[colliderLODIndex].HasMesh)
+                {
+                    meshCollider.sharedMesh = lodMeshes[colliderLODIndex].Mesh;
+                    hasSetCollider = true;
+                }
+            }
+        }
+        private void UpdateLOD(int previousLODIndex, int currentLODIndex)
+        {
+            if (currentLODIndex != previousLODIndex)
+            {
+                LODMesh lodMesh = lodMeshes[currentLODIndex];
+                if(lodMesh.HasMesh)
+                {
+                    previousLODIndex = currentLODIndex;
+                    meshFilter.mesh = lodMesh.Mesh;
+                }
+                else if (!lodMesh.HasRequestedMesh)
+                {
+                    lodMesh.RequestMesh(mapData);
+                }
             }
         }
     }

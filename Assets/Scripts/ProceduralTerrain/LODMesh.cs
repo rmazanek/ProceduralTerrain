@@ -5,24 +5,23 @@ namespace ProceduralTerrain
 {
     public class LODMesh
     {
-        private MapGenerator _mapGenerator;
         public Mesh Mesh;
         public bool HasRequestedMesh;
         public bool HasMesh;
+        public event System.Action UpdateCallback;
+        private MapGenerator _mapGenerator;
         int _lod;
-        System.Action _updateCallback;
-        public LODMesh(MapGenerator mapGenerator, int lod, System.Action updateCallback)
+        public LODMesh(MapGenerator mapGenerator, int lod)
         {
             this._mapGenerator = mapGenerator;
             this._lod = lod;
-            this._updateCallback = updateCallback;
         }
         private void OnMeshDataReceived(MeshData meshData)
         {
             Mesh = meshData.CreateMesh();
             HasMesh = true;
 
-            _updateCallback();
+            UpdateCallback();
         }
         public void RequestMesh(MapData mapData)
         {

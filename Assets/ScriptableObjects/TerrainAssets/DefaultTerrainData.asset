@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DefaultTerrainData
   m_EditorClassIdentifier: 
   AutoUpdate: 1
-  UniformScale: 10
+  UniformScale: 3
   UseFlatShading: 0
   UseFalloff: 0
   FalloffSlope: 3

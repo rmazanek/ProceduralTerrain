@@ -15,6 +15,7 @@ namespace ProceduralTerrain
         [Range(0f, 1f)] public float Persistance;
         [Range(1f, 4f)] public float Lacunarity;
         public Vector2 Offset;
+        #if UNITY_EDITOR
         protected override void OnValidate()
         {
             if (Lacunarity < 1) { Lacunarity = 1; } 
@@ -22,5 +23,6 @@ namespace ProceduralTerrain
 
             base.OnValidate();
         }
+        #endif
     }
 }

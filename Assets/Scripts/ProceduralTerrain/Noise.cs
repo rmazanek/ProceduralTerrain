@@ -37,8 +37,8 @@ namespace ProceduralTerrain
 
                     for (int i = 0; i < octaves; i++)
                     {
-                        float sampleX = ((x - halfWidth) / scale + octaveOffsets[i].x) * frequency;
-                        float sampleY = ((y - halfHeight) / scale - octaveOffsets[i].y) * frequency;
+                        float sampleX = (x - halfWidth + octaveOffsets[i].x) / scale * frequency;
+                        float sampleY = (y - halfHeight + octaveOffsets[i].y) / scale * frequency;
 
                         float noiseValue = noiseAlgorithm.GenerateNoise(sampleX, sampleY) * 2 - 1;
                         noiseHeight += noiseValue * amplitude;

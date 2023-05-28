@@ -15,7 +15,11 @@ namespace ProceduralTerrain
         [SerializeField] private NoiseData noiseData;
         public TextureData textureData;
         public Material terrainMaterial;
-        [SerializeField, Range(0, 6)] private int editorPreviewLevelOfDetail;
+        [Range(0, MeshGenerator.NumSupportedChunkSizes-1)]
+        public int ChunkSizeIndex;
+        [Range(0, MeshGenerator.NumSupportedFlatShadedChunkSizes-1)]
+        public int FlatShadedChunkSizeIndex;
+        [SerializeField, Range(0, MeshGenerator.NumSupportedLODs-1)] private int editorPreviewLevelOfDetail;
         [SerializeField] private NoiseAlgorithm noiseAlgorithm;
         private float[,] falloffMap;
         public bool AutoUpdate = true;
@@ -38,17 +42,23 @@ namespace ProceduralTerrain
                 if (TerrainData.UseFlatShading) 
                 {
                     // Flat shading requires more vertices (triangles can't have shared vertices when calculating normals), so the chunk size needs to be restricted
-                    return 95;
+                    return MeshGenerator.SupportedFlatShadedChunkSizes[FlatShadedChunkSizeIndex] - 1;
                 }
                 else
                 {
                     // Normal chunk size (242 vertices (divisible by 12, 10, 8, 4, 2, 1 for LODs) - to get the number of squares in the grid - 2 for border squares which will not show (because they are used to calculate normals)) when not using flatshading
-                    return 239;
+                    return MeshGenerator.SupportedChunkSizes[ChunkSizeIndex] - 1;
                 }
             }
         }
+        private void Awake() 
+        {
+            textureData.ApplyToMaterial(terrainMaterial);
+            textureData.UpdateMeshHeights(terrainMaterial, TerrainData.MinHeight, TerrainData.MaxHeight);
+        }
         public void DrawMapInEditor()
         {
+            textureData.UpdateMeshHeights(terrainMaterial, TerrainData.MinHeight, TerrainData.MaxHeight);
             MapData mapData = GenerateMapData(Vector2.zero);
             MapDisplay display = FindObjectOfType<MapDisplay>();
             if (drawMode == DrawMode.NoiseMap)
@@ -133,8 +143,6 @@ namespace ProceduralTerrain
             {
                 noiseMap = ApplyFalloffMap(noiseMap);
             }
-            
-            textureData.UpdateMeshHeights(terrainMaterial, TerrainData.MinHeight, TerrainData.MaxHeight);
 
             return new MapData(noiseMap);
         }
