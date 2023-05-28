@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace ProceduralTerrain
 {
-    [CreateAssetMenu(menuName = "Noise/UnityEngine.Random")]
+    [CreateAssetMenu(menuName = "Noise Algorithm/UnityEngine.Random")]
     public class RandomNoise : NoiseAlgorithm
     {
         public override float GenerateNoise(float x, float y)

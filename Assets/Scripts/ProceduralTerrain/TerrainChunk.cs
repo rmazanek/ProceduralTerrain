@@ -33,8 +33,8 @@ namespace ProceduralTerrain
             meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = mat;
 
-            meshObject.transform.position = positionV3 * EndlessTerrain.Scale;
-            meshObject.transform.localScale = Vector3.one * EndlessTerrain.Scale;
+            meshObject.transform.position = positionV3 * mapGenerator.TerrainData.UniformScale;
+            meshObject.transform.localScale = Vector3.one * mapGenerator.TerrainData.UniformScale;
             meshObject.transform.parent = parent;
             SetVisible(false);
 
@@ -54,8 +54,6 @@ namespace ProceduralTerrain
         {
             this.mapData = mapData;
             mapDataReceived = true;
-            Texture2D texture = TextureGenerator.TextureFromColorMap(mapData.ColorMap, MapGenerator.MapChunkSize, MapGenerator.MapChunkSize);
-            meshRenderer.material.mainTexture = texture;
 
             SetChunkInViewRangeToVisible();
         }
@@ -97,14 +95,6 @@ namespace ProceduralTerrain
             if (lodIndex == 0)
             {
                 SetCollisionMesh(meshCollider, collisionLODMesh, mapData);
-                //if (collisionLODMesh.HasMesh)
-                //{
-                //    meshCollider.sharedMesh = collisionLODMesh.Mesh;
-                //}
-                //else if (!collisionLODMesh.HasRequestedMesh)
-                //{
-                //    collisionLODMesh.RequestMesh(mapData);
-                //}
             }
             EndlessTerrain.TerrainChunksVisibleLastUpdate.Add(this);
 
