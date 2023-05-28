@@ -133,6 +133,8 @@ namespace ProceduralTerrain
             {
                 noiseMap = ApplyFalloffMap(noiseMap);
             }
+            
+            textureData.UpdateMeshHeights(terrainMaterial, TerrainData.MinHeight, TerrainData.MaxHeight);
 
             return new MapData(noiseMap);
         }
