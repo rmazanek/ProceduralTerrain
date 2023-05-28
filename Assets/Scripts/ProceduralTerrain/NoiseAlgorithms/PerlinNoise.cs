@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace ProceduralTerrain
 {
-    [CreateAssetMenu(menuName = "Noise/Perlin")]
+    [CreateAssetMenu(menuName = "Noise Algorithm/Perlin")]
     public class PerlinNoise : NoiseAlgorithm
     {
         public override float GenerateNoise(float x, float y)

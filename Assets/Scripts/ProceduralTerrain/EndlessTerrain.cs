@@ -6,7 +6,6 @@ namespace ProceduralTerrain
 {
     public class EndlessTerrain : MonoBehaviour
     {
-        public const float Scale = 2f;
         const float viewerMoveThresholdForChunkUpdate = 25f;
         const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
         public LODInfo[] DetailLevels;
@@ -25,14 +24,14 @@ namespace ProceduralTerrain
             mapGenerator = FindObjectOfType<MapGenerator>();
 
             MaxViewDst = DetailLevels[DetailLevels.Length - 1].VisibleDistanceThreshold;
-            chunkSize = MapGenerator.MapChunkSize - 1;
+            chunkSize = mapGenerator.MapChunkSize - 1;
             chunksVisibleInViewDst = Mathf.RoundToInt(MaxViewDst / chunkSize);
 
             UpdateVisibleChunks();
         }
         private void Update()
         {
-            ViewerPosition = new Vector2(Viewer.position.x, Viewer.position.z) / Scale;
+            ViewerPosition = new Vector2(Viewer.position.x, Viewer.position.z) / mapGenerator.TerrainData.UniformScale;
 
             if((viewerPositionOld - ViewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
             {

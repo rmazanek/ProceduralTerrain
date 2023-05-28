@@ -5,7 +5,7 @@ namespace ProceduralTerrain
 {
     public static class FalloffGenerator
     {
-        public static float[,] GenerateFalloffMap(int size)
+        public static float[,] GenerateFalloffMap(int size, float slope, float offset)
         {
             float[,] map = new float[size, size];
 
@@ -17,18 +17,14 @@ namespace ProceduralTerrain
                     float y = j / (float)size * 2 - 1;
 
                     float value = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y));
-                    map[i, j] = FalloffModifier(value);
+                    map[i, j] = FalloffModifier(value, slope, offset);
                 }
             }
-
             return map;
         }
 
-        static float FalloffModifier(float value)
+        static float FalloffModifier(float value, float slope, float offset)
         {
-            float slope = MapGenerator.FalloffSlope;
-            float offset = MapGenerator.FalloffOffset;
-
             return Mathf.Pow(value, slope) / (Mathf.Pow(value, slope) + Mathf.Pow(offset - offset * value, slope));
         }
     }
