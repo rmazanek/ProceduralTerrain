@@ -9,6 +9,7 @@ namespace ProceduralTerrain
         public event System.Action OnValuesUpdated;
         public bool AutoUpdate;
 
+        #if UNITY_EDITOR
         protected virtual void OnValidate()
         {
             UnityEditor.EditorApplication.delayCall += _OnValidate;
@@ -28,5 +29,6 @@ namespace ProceduralTerrain
                 OnValuesUpdated();
             }
         }
+        #endif
     }
 }

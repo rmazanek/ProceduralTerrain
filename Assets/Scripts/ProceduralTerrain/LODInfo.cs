@@ -6,8 +6,15 @@ namespace ProceduralTerrain
     [System.Serializable]
     public struct LODInfo
     {
+        [Range(0, MeshGenerator.NumSupportedLODs-1)]
         public int LOD;
         public float VisibleDistanceThreshold;
-        public bool UseForCollider;
+        public float SqrVisibleDistanceThreshold
+        {
+            get 
+            {
+                return VisibleDistanceThreshold * VisibleDistanceThreshold;
+            }
+        }
     }
 }
