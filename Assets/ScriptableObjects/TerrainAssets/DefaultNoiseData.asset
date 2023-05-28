@@ -16,7 +16,7 @@ MonoBehaviour:
   Seed: 0
   NormalizeMode: 0
   NormalizationFactor: 1
-  NoiseScale: 25
+  NoiseScale: 25.28
   Octaves: 5
   Persistance: 0.5
   Lacunarity: 2
