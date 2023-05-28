@@ -14,5 +14,19 @@ namespace ProceduralTerrain
         [Range(0.1f, 20f)] public float FalloffOffset = 1.5f;
         public float MeshHeightMultiplier;
         public AnimationCurve MeshHeightCurve;
+        public float MinHeight
+        {
+            get 
+            {
+                return UniformScale * MeshHeightMultiplier * MeshHeightCurve.Evaluate(0);
+            }
+        }
+        public float MaxHeight
+        {
+            get 
+            {
+                return UniformScale * MeshHeightMultiplier * MeshHeightCurve.Evaluate(1);
+            }
+        }
     }
 }
