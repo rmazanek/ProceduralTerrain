@@ -1,10 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 namespace ProceduralTerrain
 {
     public class TerrainChunk
     {
+        private const float ColliderGenerationDistanceThreshold = 5f;
+        public event System.Action<TerrainChunk, bool> OnVisibilityChanged;
         public Vector2 coord;
         private Vector2 sampleCenter;
         private GameObject meshObject;
@@ -19,15 +22,22 @@ namespace ProceduralTerrain
         private bool heightMapReceived;
         private int previousLODIndex = -1;
         private bool hasSetCollider;
-        public TerrainChunk(MapGenerator mapGenerator, Vector2 coord, float meshWorldSize, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Material mat)
+        private float maxViewDistance;
+        private HeightMapSettings heightMapSettings;
+        private MeshSettings meshSettings;
+        private Transform viewer;
+        public TerrainChunk(Vector2 coord, HeightMapSettings heightMapSettings, MeshSettings meshSettings, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Transform viewer, Material mat)
         {
             this.coord = coord;
             this.detailLevels = detailLevels;
             this.colliderLODIndex = colliderLODIndex;
+            this.heightMapSettings = heightMapSettings;
+            this.meshSettings = meshSettings;
+            this.viewer = viewer;
 
-            sampleCenter = coord * meshWorldSize / mapGenerator.MeshSettings.Scale;
-            Vector2 position = coord * meshWorldSize;
-            bounds = new Bounds(position, Vector2.one * meshWorldSize);
+            sampleCenter = coord * meshSettings.MeshWorldSize / meshSettings.Scale;
+            Vector2 position = coord * meshSettings.MeshWorldSize;
+            bounds = new Bounds(position, Vector2.one * meshSettings.MeshWorldSize);
 
             meshObject = new GameObject("Terrain Chunk");
             meshFilter = meshObject.AddComponent<MeshFilter>();
@@ -42,7 +52,7 @@ namespace ProceduralTerrain
             lodMeshes = new LODMesh[detailLevels.Length];
             for (int i = 0; i < detailLevels.Length; i++)
             {
-                lodMeshes[i] = new LODMesh(mapGenerator, detailLevels[i].LOD);
+                lodMeshes[i] = new LODMesh(detailLevels[i].LOD);
                 lodMeshes[i].UpdateCallback += UpdateTerrainChunk;
                 if (i == colliderLODIndex)
                 {
@@ -50,21 +60,30 @@ namespace ProceduralTerrain
                 }
             }
 
-            mapGenerator.RequestHeightMap(sampleCenter, OnMapDataReceived);
+            maxViewDistance = detailLevels[detailLevels.Length - 1].VisibleDistanceThreshold;
         }
-        private void OnMapDataReceived(HeightMap heightMap)
+        public void Load()
         {
-            this.heightMap = heightMap;
+            ThreadedDataRequester.RequestData(() => HeightMapGenerator.GenerateHeightMap(meshSettings.NumVertsPerLine, meshSettings.NumVertsPerLine, heightMapSettings, sampleCenter), OnHeightMapReceived);
+        }
+        private void OnHeightMapReceived(object heightMap)
+        {
+            this.heightMap = (HeightMap)heightMap;
             heightMapReceived = true;
 
             UpdateTerrainChunk();
         }
+        private Vector2 viewerPosition {
+            get {
+                return new Vector2(viewer.position.x, viewer.position.z);
+            }
+        }
         public void UpdateTerrainChunk()
         {
             if (!heightMapReceived) return;
-            float viewerDistFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(EndlessTerrain.ViewerPosition));
+            float viewerDistFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
             bool wasVisible = IsVisible();
-            bool visible = viewerDistFromNearestEdge <= EndlessTerrain.MaxViewDst;
+            bool visible = viewerDistFromNearestEdge <= maxViewDistance;
 
             if (visible)
             {
@@ -90,7 +109,7 @@ namespace ProceduralTerrain
                     }
                     else if (!lodMesh.HasRequestedMesh)
                     {
-                        lodMesh.RequestMesh(heightMap);
+                        lodMesh.RequestMesh(heightMap, meshSettings);
                     }
                 }
             }
@@ -108,31 +127,27 @@ namespace ProceduralTerrain
         private void UpdateVisibility(bool visibleLastFrame, bool visibleThisFrame)
         {
             if (visibleLastFrame == visibleThisFrame) return;
-            if (visibleThisFrame)
-            {
-                EndlessTerrain.VisibleTerrainChunks.Add(this);
-            }
-            else
-            {
-                EndlessTerrain.VisibleTerrainChunks.Remove(this);
-            }
             SetVisible(visibleThisFrame);
+            if (OnVisibilityChanged != null)
+            {
+                OnVisibilityChanged(this, visibleThisFrame);
+            }
         }
         public void UpdateCollisionMesh()
         {
             if (hasSetCollider) return;
 
-            float sqrDstFromViewerToEdge = bounds.SqrDistance(EndlessTerrain.ViewerPosition);
+            float sqrDstFromViewerToEdge = bounds.SqrDistance(viewerPosition);
 
             if (sqrDstFromViewerToEdge < detailLevels[colliderLODIndex].SqrVisibleDistanceThreshold)
             {
                 if (!lodMeshes[colliderLODIndex].HasRequestedMesh)
                 {
-                    lodMeshes[colliderLODIndex].RequestMesh(heightMap);
+                    lodMeshes[colliderLODIndex].RequestMesh(heightMap, meshSettings);
                 }
             }
             
-            if (sqrDstFromViewerToEdge < EndlessTerrain.ColliderGenerationDistanceThreshold * EndlessTerrain.ColliderGenerationDistanceThreshold)
+            if (sqrDstFromViewerToEdge < ColliderGenerationDistanceThreshold * ColliderGenerationDistanceThreshold)
             {
                 if (lodMeshes[colliderLODIndex].HasMesh)
                 {
@@ -153,7 +168,7 @@ namespace ProceduralTerrain
                 }
                 else if (!lodMesh.HasRequestedMesh)
                 {
-                    lodMesh.RequestMesh(heightMap);
+                    lodMesh.RequestMesh(heightMap, meshSettings);
                 }
             }
         }
