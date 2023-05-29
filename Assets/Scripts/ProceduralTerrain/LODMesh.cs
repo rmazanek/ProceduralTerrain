@@ -23,7 +23,7 @@ namespace ProceduralTerrain
 
             UpdateCallback();
         }
-        public void RequestMesh(MapData mapData)
+        public void RequestMesh(HeightMap mapData)
         {
             HasRequestedMesh = true;
             _mapGenerator.RequestMeshData(mapData, _lod, OnMeshDataReceived);

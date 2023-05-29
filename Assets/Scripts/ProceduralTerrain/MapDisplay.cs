@@ -17,7 +17,7 @@ namespace ProceduralTerrain
         public void DrawMesh(MeshData meshData)
         {
             meshFilter.sharedMesh = meshData.CreateMesh();
-            meshFilter.transform.localScale = Vector3.one * FindObjectOfType<MapGenerator>().TerrainData.UniformScale;
+            meshFilter.transform.localScale = Vector3.one * FindObjectOfType<MapGenerator>().MeshSettings.Scale;
         }
     }
 }

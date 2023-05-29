@@ -6,30 +6,28 @@ namespace ProceduralTerrain
     public class TerrainChunk
     {
         public Vector2 coord;
-        private Vector2 position;
+        private Vector2 sampleCenter;
         private GameObject meshObject;
         private Bounds bounds;
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
         private MeshCollider meshCollider;
-        private MapGenerator mapGenerator;
         private LODInfo[] detailLevels;
         private LODMesh[] lodMeshes;
         private int colliderLODIndex;
-        private MapData mapData;
-        private bool mapDataReceived;
+        private HeightMap heightMap;
+        private bool heightMapReceived;
         private int previousLODIndex = -1;
         private bool hasSetCollider;
-        public TerrainChunk(MapGenerator mapGen, Vector2 coord, int size, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Material mat)
+        public TerrainChunk(MapGenerator mapGenerator, Vector2 coord, float meshWorldSize, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Material mat)
         {
             this.coord = coord;
             this.detailLevels = detailLevels;
             this.colliderLODIndex = colliderLODIndex;
 
-            mapGenerator = mapGen;
-            position = coord * size;
-            bounds = new Bounds(position, Vector2.one * size);
-            Vector3 positionV3 = new Vector3(position.x, 0, position.y);
+            sampleCenter = coord * meshWorldSize / mapGenerator.MeshSettings.Scale;
+            Vector2 position = coord * meshWorldSize;
+            bounds = new Bounds(position, Vector2.one * meshWorldSize);
 
             meshObject = new GameObject("Terrain Chunk");
             meshFilter = meshObject.AddComponent<MeshFilter>();
@@ -37,8 +35,7 @@ namespace ProceduralTerrain
             meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = mat;
 
-            meshObject.transform.position = positionV3 * mapGenerator.TerrainData.UniformScale;
-            meshObject.transform.localScale = Vector3.one * mapGenerator.TerrainData.UniformScale;
+            meshObject.transform.position = new Vector3(position.x, 0, position.y);
             meshObject.transform.parent = parent;
             SetVisible(false);
 
@@ -53,50 +50,51 @@ namespace ProceduralTerrain
                 }
             }
 
-            mapGenerator.RequestMapData(position, OnMapDataReceived);
+            mapGenerator.RequestHeightMap(sampleCenter, OnMapDataReceived);
         }
-        private void OnMapDataReceived(MapData mapData)
+        private void OnMapDataReceived(HeightMap heightMap)
         {
-            this.mapData = mapData;
-            mapDataReceived = true;
+            this.heightMap = heightMap;
+            heightMapReceived = true;
 
             UpdateTerrainChunk();
         }
         public void UpdateTerrainChunk()
         {
-            if (!mapDataReceived) return;
+            if (!heightMapReceived) return;
             float viewerDistFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(EndlessTerrain.ViewerPosition));
             bool wasVisible = IsVisible();
             bool visible = viewerDistFromNearestEdge <= EndlessTerrain.MaxViewDst;
 
-            if (!visible) return;
-            
-            int lodIndex = 0;
-            for (int i = 0; i < detailLevels.Length - 1; i++)
+            if (visible)
             {
-                if (viewerDistFromNearestEdge > detailLevels[i].VisibleDistanceThreshold)
+                int lodIndex = 0;
+                for (int i = 0; i < detailLevels.Length - 1; i++)
                 {
-                    lodIndex = i + 1;
+                    if (viewerDistFromNearestEdge > detailLevels[i].VisibleDistanceThreshold)
+                    {
+                        lodIndex = i + 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-                else
+                if (lodIndex != previousLODIndex)
                 {
-                    break;
+                    LODMesh lodMesh = lodMeshes[lodIndex];
+                    if(lodMesh.HasMesh)
+                    {
+                        previousLODIndex = lodIndex;
+                        meshFilter.mesh = lodMesh.Mesh;
+                    }
+                    else if (!lodMesh.HasRequestedMesh)
+                    {
+                        lodMesh.RequestMesh(heightMap);
+                    }
                 }
             }
-            if (lodIndex != previousLODIndex)
-            {
-                LODMesh lodMesh = lodMeshes[lodIndex];
-                if(lodMesh.HasMesh)
-                {
-                    previousLODIndex = lodIndex;
-                    meshFilter.mesh = lodMesh.Mesh;
-                }
-                else if (!lodMesh.HasRequestedMesh)
-                {
-                    lodMesh.RequestMesh(mapData);
-                }
-            }
-            
+
             UpdateVisibility(wasVisible, visible);
         }
         public void SetVisible(bool visible)
@@ -130,7 +128,7 @@ namespace ProceduralTerrain
             {
                 if (!lodMeshes[colliderLODIndex].HasRequestedMesh)
                 {
-                    lodMeshes[colliderLODIndex].RequestMesh(mapData);
+                    lodMeshes[colliderLODIndex].RequestMesh(heightMap);
                 }
             }
             
@@ -155,7 +153,7 @@ namespace ProceduralTerrain
                 }
                 else if (!lodMesh.HasRequestedMesh)
                 {
-                    lodMesh.RequestMesh(mapData);
+                    lodMesh.RequestMesh(heightMap);
                 }
             }
         }
