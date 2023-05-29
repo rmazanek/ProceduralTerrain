@@ -4,18 +4,19 @@ using UnityEngine;
 
 namespace ProceduralTerrain
 {
-    public class EndlessTerrain : MonoBehaviour
+    [RequireComponent(typeof(ThreadedDataRequester))]
+    public class TerrainGenerator : MonoBehaviour
     {
         const float viewerMoveThresholdForChunkUpdate = 25f;
         const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
-        public static float ColliderGenerationDistanceThreshold = 5f;
         public int ColliderLODIndex;
         public LODInfo[] DetailLevels;
-        public static float MaxViewDst;
+        public MeshSettings meshSettings;
+        public HeightMapSettings heightMapSettings;
+        public TextureData textureSettings;
         public Transform Viewer;
-        public static Vector2 ViewerPosition;
-        Vector2 viewerPositionOld;
-        private static MapGenerator mapGenerator;
+        private Vector2 ViewerPosition;
+        private Vector2 viewerPositionOld;
         [SerializeField] private Material mapMaterial;
         private float meshWorldSize;
         private int chunksVisibleInViewDst;
@@ -23,11 +24,12 @@ namespace ProceduralTerrain
         public static List<TerrainChunk> VisibleTerrainChunks = new List<TerrainChunk>();
         private void Start() 
         {
-            mapGenerator = FindObjectOfType<MapGenerator>();
-
-            MaxViewDst = DetailLevels[DetailLevels.Length - 1].VisibleDistanceThreshold;
-            meshWorldSize = mapGenerator.MeshSettings.MeshWorldSize;
-            chunksVisibleInViewDst = Mathf.RoundToInt(MaxViewDst / meshWorldSize);
+            textureSettings.ApplyToMaterial(mapMaterial);
+            textureSettings.UpdateMeshHeights(mapMaterial, heightMapSettings.MinHeight, heightMapSettings.MaxHeight);
+            
+            float maxViewDst = DetailLevels[DetailLevels.Length - 1].VisibleDistanceThreshold;
+            meshWorldSize = meshSettings.MeshWorldSize;
+            chunksVisibleInViewDst = Mathf.RoundToInt(maxViewDst / meshWorldSize);
 
             UpdateVisibleChunks();
         }
@@ -67,9 +69,23 @@ namespace ProceduralTerrain
                     }
                     else
                     {
-                        terrainChunkDictionary.Add(viewedChunkCoord, new TerrainChunk(mapGenerator, viewedChunkCoord, meshWorldSize, DetailLevels, ColliderLODIndex, transform, mapMaterial));
+                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, DetailLevels, ColliderLODIndex, transform, Viewer, mapMaterial);
+                        terrainChunkDictionary.Add(viewedChunkCoord, newChunk);
+                        newChunk.OnVisibilityChanged += OnTerrainChunkVisibilityChanged;
+                        newChunk.Load();
                     }
                 }
+            }
+        }
+        private void OnTerrainChunkVisibilityChanged(TerrainChunk chunk, bool isVisible)
+        {
+            if (isVisible)
+            {
+                VisibleTerrainChunks.Add(chunk);
+            }
+            else
+            {
+                VisibleTerrainChunks.Remove(chunk);
             }
         }
         private HashSet<Vector2> UpdateTerrainChunks()
