@@ -17,7 +17,7 @@ namespace ProceduralTerrain
         Vector2 viewerPositionOld;
         private static MapGenerator mapGenerator;
         [SerializeField] private Material mapMaterial;
-        private int chunkSize;
+        private float meshWorldSize;
         private int chunksVisibleInViewDst;
         private Dictionary<Vector2, TerrainChunk> terrainChunkDictionary = new Dictionary<Vector2, TerrainChunk>();
         public static List<TerrainChunk> VisibleTerrainChunks = new List<TerrainChunk>();
@@ -26,14 +26,14 @@ namespace ProceduralTerrain
             mapGenerator = FindObjectOfType<MapGenerator>();
 
             MaxViewDst = DetailLevels[DetailLevels.Length - 1].VisibleDistanceThreshold;
-            chunkSize = mapGenerator.MapChunkSize - 1;
-            chunksVisibleInViewDst = Mathf.RoundToInt(MaxViewDst / chunkSize);
+            meshWorldSize = mapGenerator.MeshSettings.MeshWorldSize;
+            chunksVisibleInViewDst = Mathf.RoundToInt(MaxViewDst / meshWorldSize);
 
             UpdateVisibleChunks();
         }
         private void Update()
         {
-            ViewerPosition = new Vector2(Viewer.position.x, Viewer.position.z) / mapGenerator.TerrainData.UniformScale;
+            ViewerPosition = new Vector2(Viewer.position.x, Viewer.position.z);
             if (ViewerPosition != viewerPositionOld)
             {
                 foreach (TerrainChunk chunk in VisibleTerrainChunks)
@@ -49,11 +49,10 @@ namespace ProceduralTerrain
         }
         private void UpdateVisibleChunks()
         {
-            HashSet<Vector2> alreadyUpdatedChunkCoords = new HashSet<Vector2>();
-            alreadyUpdatedChunkCoords = UpdateTerrainChunks();
+            HashSet<Vector2> alreadyUpdatedChunkCoords = UpdateTerrainChunks();
 
-            int currentChunkCoordX = Mathf.RoundToInt(ViewerPosition.x / chunkSize);
-            int currentChunkCoordY = Mathf.RoundToInt(ViewerPosition.y / chunkSize);
+            int currentChunkCoordX = Mathf.RoundToInt(ViewerPosition.x / meshWorldSize);
+            int currentChunkCoordY = Mathf.RoundToInt(ViewerPosition.y / meshWorldSize);
 
             for (int yOffset = -chunksVisibleInViewDst; yOffset <= chunksVisibleInViewDst; yOffset++)
             {
@@ -61,15 +60,14 @@ namespace ProceduralTerrain
                 {
                     Vector2 viewedChunkCoord = new Vector2(currentChunkCoordX + xOffset, currentChunkCoordY + yOffset);
                     
-                    if (alreadyUpdatedChunkCoords.Contains(viewedChunkCoord)) return;
-                    
+                    if (alreadyUpdatedChunkCoords.Contains(viewedChunkCoord)) continue;
                     if (terrainChunkDictionary.ContainsKey(viewedChunkCoord))
                     {
                         terrainChunkDictionary[viewedChunkCoord].UpdateTerrainChunk();
                     }
                     else
                     {
-                        terrainChunkDictionary.Add(viewedChunkCoord, new TerrainChunk(mapGenerator, viewedChunkCoord, chunkSize, DetailLevels, ColliderLODIndex, transform, mapMaterial));
+                        terrainChunkDictionary.Add(viewedChunkCoord, new TerrainChunk(mapGenerator, viewedChunkCoord, meshWorldSize, DetailLevels, ColliderLODIndex, transform, mapMaterial));
                     }
                 }
             }
@@ -79,18 +77,11 @@ namespace ProceduralTerrain
             HashSet<Vector2> updatedChunkCoords = new HashSet<Vector2>();
             for (int i = VisibleTerrainChunks.Count - 1; i >= 0; i--)
             {
-                VisibleTerrainChunks[i].UpdateTerrainChunk();
                 updatedChunkCoords.Add(VisibleTerrainChunks[i].coord);
+                VisibleTerrainChunks[i].UpdateTerrainChunk();
             }
 
             return updatedChunkCoords;
-        }
-        private void AddTerrainChunkToVisibleLastUpdateList(Vector2 coord)
-        {
-            if (terrainChunkDictionary[coord].IsVisible())
-            {
-                VisibleTerrainChunks.Add(terrainChunkDictionary[coord]);
-            }
         }
     }
 }
