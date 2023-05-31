@@ -22,7 +22,7 @@ namespace ProceduralTerrain
         {
             get 
             {
-                return SupportedChunkSizes[(UseFlatShading) ? FlatShadedChunkSizeIndex : ChunkSizeIndex] + 1;
+                return SupportedChunkSizes[(UseFlatShading) ? FlatShadedChunkSizeIndex : ChunkSizeIndex] + 5;
             }
         }
         public float MeshWorldSize 

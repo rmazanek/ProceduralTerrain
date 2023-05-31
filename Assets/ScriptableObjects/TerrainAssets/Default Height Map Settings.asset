@@ -17,15 +17,15 @@ MonoBehaviour:
     Seed: 0
     NormalizeMode: 1
     NormalizationFactor: 1
-    Scale: 50
+    Scale: 60
     Octaves: 6
-    Persistence: 0.6
+    Persistence: 0.49
     Lacunarity: 2
     Offset: {x: 0, y: 0}
     NoiseAlgorithm: {fileID: 11400000, guid: 7374ca9d6d2228b4eb3fc98e694966ca, type: 2}
   UseFalloff: 0
   FalloffSlope: 3
-  FalloffOffset: 1.5
+  FalloffOffset: 2
   HeightMultiplier: 40
   HeightCurve:
     serializedVersion: 2
@@ -40,14 +40,50 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.38056716
-      value: 0.16023842
-      inSlope: 1.6027757
-      outSlope: 1.6027757
+      time: 0.15
+      value: 0.019475352
+      inSlope: 0.1610705
+      outSlope: 0.1610705
       tangentMode: 0
       weightedMode: 0
       inWeight: 0.33333334
-      outWeight: 0.10633717
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.17658204
+      value: 0.15
+      inSlope: 0.30091703
+      outSlope: 0.30091703
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.51978695
+    - serializedVersion: 3
+      time: 0.3838255
+      value: 0.15
+      inSlope: 0.00078880833
+      outSlope: 0.00078880833
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.4875554
+    - serializedVersion: 3
+      time: 0.4989643
+      value: 0.22358853
+      inSlope: 2.0287359
+      outSlope: 2.0287359
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.18439795
+      outWeight: 0.37468275
+    - serializedVersion: 3
+      time: 0.5407202
+      value: 0.33860528
+      inSlope: 1.7878425
+      outSlope: 1.7878425
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.2770052
+      outWeight: 0.33333334
     - serializedVersion: 3
       time: 1
       value: 1
