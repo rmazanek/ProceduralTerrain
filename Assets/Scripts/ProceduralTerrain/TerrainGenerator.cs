@@ -11,9 +11,9 @@ namespace ProceduralTerrain
         const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
         public int ColliderLODIndex;
         public LODInfo[] DetailLevels;
-        public MeshSettings meshSettings;
-        public HeightMapSettings heightMapSettings;
-        public TextureData textureSettings;
+        public MeshSettings MeshSettings;
+        public HeightMapSettings HeightMapSettings;
+        public TextureData TextureSettings;
         public Transform Viewer;
         private Vector2 ViewerPosition;
         private Vector2 viewerPositionOld;
@@ -24,11 +24,11 @@ namespace ProceduralTerrain
         public static List<TerrainChunk> VisibleTerrainChunks = new List<TerrainChunk>();
         private void Start() 
         {
-            textureSettings.ApplyToMaterial(mapMaterial);
-            textureSettings.UpdateMeshHeights(mapMaterial, heightMapSettings.MinHeight, heightMapSettings.MaxHeight);
+            TextureSettings.ApplyToMaterial(mapMaterial);
+            TextureSettings.UpdateMeshHeights(mapMaterial, HeightMapSettings.MinHeight, HeightMapSettings.MaxHeight);
             
             float maxViewDst = DetailLevels[DetailLevels.Length - 1].VisibleDistanceThreshold;
-            meshWorldSize = meshSettings.MeshWorldSize;
+            meshWorldSize = MeshSettings.MeshWorldSize;
             chunksVisibleInViewDst = Mathf.RoundToInt(maxViewDst / meshWorldSize);
 
             UpdateVisibleChunks();
@@ -69,7 +69,7 @@ namespace ProceduralTerrain
                     }
                     else
                     {
-                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, heightMapSettings, meshSettings, DetailLevels, ColliderLODIndex, transform, Viewer, mapMaterial);
+                        TerrainChunk newChunk = new TerrainChunk(viewedChunkCoord, HeightMapSettings, MeshSettings, DetailLevels, ColliderLODIndex, transform, Viewer, mapMaterial);
                         terrainChunkDictionary.Add(viewedChunkCoord, newChunk);
                         newChunk.OnVisibilityChanged += OnTerrainChunkVisibilityChanged;
                         newChunk.Load();
