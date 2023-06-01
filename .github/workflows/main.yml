@@ -3,7 +3,7 @@ name: Build Game
 on: 
   push:
     branches:
-      - master
+      - main
 
 jobs:
   buildWebGL:
